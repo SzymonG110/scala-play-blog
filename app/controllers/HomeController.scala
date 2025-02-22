@@ -9,7 +9,7 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
   def index() = Action { implicit request: Request[AnyContent] =>
     val username = request.session.get("username")
     if (username.isEmpty) {
-      Redirect(routes.AuthController.loginPage)
+      Redirect(routes.AuthController.loginPage())
     } else {
       Ok(views.html.index(username.get))
     }

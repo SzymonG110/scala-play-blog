@@ -7,10 +7,10 @@
 GET         /                    controllers.HomeController.index()
 
 # Auth
-GET         /register            controllers.AuthController.registerPage
+GET         /register            controllers.AuthController.registerPage()
 POST        /register            controllers.AuthController.register
 
-GET         /login               controllers.AuthController.loginPage
+GET         /login               controllers.AuthController.loginPage()
 POST        /login               controllers.AuthController.login
 
 GET         /logout              controllers.AuthController.logoutPage

@@ -1,15 +1,20 @@
 package forms
 
+import play.api.data._
 import play.api.data.Forms._
-import play.api.data.Form
+import play.api.data.validation.Constraints._
 
-case class LoginForm(username: String, password: String)
+case class LoginData(username: String, password: String)
+
+object LoginData {
+  def unapply(u: LoginData): Option[(String, String)] = Some((u.username, u.password))
+}
 
 object LoginForm {
-  val form: Form[LoginForm] = Form(
+  val form: Form[LoginData] = Form(
     mapping(
       "username" -> nonEmptyText(3, 20),
       "password" -> nonEmptyText(6, 50)
-    )(LoginForm.apply)(LoginForm.unapply)
+    )(LoginData.apply)(LoginData.unapply)
   )
 }

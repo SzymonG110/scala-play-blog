@@ -14,7 +14,7 @@ class AuthController @Inject()(cc: MessagesControllerComponents) extends Message
   }
 
   def register: Action[AnyContent] = Action { implicit request =>
-    LoginForm.form.bindFromRequest.fold(
+    LoginForm.form.bindFromRequest().fold(
       registerFormError => {
         BadRequest(views.html.register(registerFormError))
       },
@@ -22,7 +22,7 @@ class AuthController @Inject()(cc: MessagesControllerComponents) extends Message
       registerForm => {
         val userOpt = UserRepository.findByUsername(registerForm.username)
         if (userOpt.isDefined) {
-          Redirect(routes.AuthController.registerPage).flashing("error" -> "User already exists")
+          Redirect(routes.AuthController.registerPage()).flashing("error" -> "User already exists")
         } else {
           val passwordHash = PasswordHasher.hash(registerForm.password)
           val user = User(0, registerForm.username, passwordHash)
@@ -39,7 +39,7 @@ class AuthController @Inject()(cc: MessagesControllerComponents) extends Message
   }
 
   def login: Action[AnyContent] = Action { implicit request =>
-    LoginForm.form.bindFromRequest.fold(
+    LoginForm.form.bindFromRequest().fold(
       loginFormError => {
         BadRequest(views.html.login(loginFormError))
       },
@@ -47,11 +47,11 @@ class AuthController @Inject()(cc: MessagesControllerComponents) extends Message
       loginForm => {
         val userOpt = UserRepository.findByUsername(loginForm.username)
         if (userOpt.isEmpty) {
-          Redirect(routes.AuthController.loginPage).flashing("error" -> "Invalid login or password")
+          Redirect(routes.AuthController.loginPage()).flashing("error" -> "Invalid login or password")
         } else {
           val user = userOpt.get
           if (!PasswordHasher.check(loginForm.password, user.password)) {
-            Redirect(routes.AuthController.loginPage).flashing("error" -> "Invalid login or password")
+            Redirect(routes.AuthController.loginPage()).flashing("error" -> "Invalid login or password")
           } else {
             Redirect(routes.HomeController.index()).withSession("username" -> user.username)
           }
@@ -61,6 +61,6 @@ class AuthController @Inject()(cc: MessagesControllerComponents) extends Message
   }
 
   def logoutPage: Action[AnyContent] = Action { _ =>
-    Redirect(routes.AuthController.loginPage).withNewSession
+    Redirect(routes.AuthController.loginPage()).withNewSession
   }
 }
