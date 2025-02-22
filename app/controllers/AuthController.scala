@@ -1,65 +1,66 @@
 package controllers
 
-import forms.LoginForm
-
 import javax.inject._
 import models.User
-import play.api.i18n.{MessagesApi, MessagesProvider}
 import play.api.mvc._
-import play.api.libs.json._
 import repositories.UserRepository
-import utils.{JwtHelper, PasswordHasher}
-import scala.concurrent.{ExecutionContext, Future}
+import utils.PasswordHasher
+import forms.LoginForm
 
 @Singleton
-class AuthController @Inject()(cc: ControllerComponents, override val messagesApi: MessagesApi)(implicit ec: ExecutionContext) extends AbstractController(cc) with LegacyI18nSupport {
-  implicit val userFormat: OFormat[User] = Json.format[User]
-
-  def registerPage(): Action[AnyContent] = Action { implicit request: Request[AnyContent] =>
-    implicit val messages: MessagesProvider = messagesApi.preferred(request)
-    Ok(views.html.register(LoginForm.loginForm))
+class AuthController @Inject()(cc: MessagesControllerComponents) extends MessagesAbstractController(cc) {
+  def registerPage(): Action[AnyContent] = Action { implicit request =>
+    Ok(views.html.register(LoginForm.form))
   }
 
-  def register: Action[AnyContent] = Action.async { implicit request: Request[AnyContent] =>
-    LoginForm.loginForm.bindFromRequest.fold(
-      formWithErrors => {
-        implicit val messages: MessagesProvider = messagesApi.preferred(request)
-        Future.successful(BadRequest(views.html.register(formWithErrors)))
+  def register: Action[AnyContent] = Action { implicit request =>
+    LoginForm.form.bindFromRequest.fold(
+      registerFormError => {
+        BadRequest(views.html.register(registerFormError))
       },
-      loginData => {
-        if (UserRepository.findByUsername(loginData.username).isDefined) {
-          Future.successful(Conflict(Json.obj("error" -> "User already exists")))
+
+      registerForm => {
+        val userOpt = UserRepository.findByUsername(registerForm.username)
+        if (userOpt.isDefined) {
+          Redirect(routes.AuthController.registerPage).flashing("error" -> "User already exists")
         } else {
-          val hashedPassword = PasswordHasher.hashPassword(loginData.password)
-          val user = User(System.currentTimeMillis(), loginData.username, hashedPassword)
-          UserRepository.save(user)
-          Future.successful(Created(Json.obj("message" -> "User registered successfully")))
+          val passwordHash = PasswordHasher.hash(registerForm.password)
+          val user = User(0, registerForm.username, passwordHash)
+          UserRepository.create(user)
+          Redirect(routes.HomeController.index()).withSession("username" -> user.username)
         }
       }
     )
   }
 
-  def loginPage(): Action[AnyContent] = Action { implicit request: Request[AnyContent] =>
-    implicit val messages: MessagesProvider = messagesApi.preferred(request)
-    Ok(views.html.login(LoginForm.loginForm))
+
+  def loginPage(): Action[AnyContent] = Action { implicit request =>
+    Ok(views.html.login(LoginForm.form))
   }
 
-  def login: Action[AnyContent] = Action.async { implicit request: Request[AnyContent] =>
-    LoginForm.loginForm.bindFromRequest.fold(
-      formWithErrors => {
-        implicit val messages: MessagesProvider = messagesApi.preferred(request)
-        Future.successful(BadRequest(views.html.login(formWithErrors)))
+  def login: Action[AnyContent] = Action { implicit request =>
+    LoginForm.form.bindFromRequest.fold(
+      loginFormError => {
+        BadRequest(views.html.login(loginFormError))
       },
-      loginData => {
-        Future {
-          UserRepository.findByUsername(loginData.username) match {
-            case Some(user) if PasswordHasher.checkPassword(loginData.password, user.password) =>
-              val token = JwtHelper.createToken(loginData.username)
-              Ok(Json.obj("token" -> token))
-            case _ => Unauthorized(Json.obj("error" -> "Invalid credentials"))
+
+      loginForm => {
+        val userOpt = UserRepository.findByUsername(loginForm.username)
+        if (userOpt.isEmpty) {
+          Redirect(routes.AuthController.loginPage).flashing("error" -> "Invalid login or password")
+        } else {
+          val user = userOpt.get
+          if (!PasswordHasher.check(loginForm.password, user.password)) {
+            Redirect(routes.AuthController.loginPage).flashing("error" -> "Invalid login or password")
+          } else {
+            Redirect(routes.HomeController.index()).withSession("username" -> user.username)
           }
         }
       }
     )
+  }
+
+  def logoutPage: Action[AnyContent] = Action { _ =>
+    Redirect(routes.AuthController.loginPage).withNewSession
   }
 }

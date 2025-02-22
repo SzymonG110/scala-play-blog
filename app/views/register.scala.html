@@ -1,25 +1,19 @@
 @import forms.LoginForm
-@(loginForm: Form[LoginForm])(implicit request: RequestHeader, messages: MessagesProvider)
-
-@import helper._
+@(loginForm: Form[LoginForm])(implicit request: MessagesRequestHeader, flash: Flash)
 
 @main("Register") {
     <h1>Register</h1>
 
-    @form(action = routes.AuthController.register) {
-        @CSRF.formField
+    @helper.form(action = routes.AuthController.register) {
+        @helper.CSRF.formField
 
-        @inputText(loginForm("username"), '_label -> "Username")
-        @inputPassword(loginForm("password"), '_label -> "Password")
+        @helper.inputText(loginForm("username"))
+        @helper.inputText(loginForm("password"))
 
-        @if(loginForm.hasGlobalErrors) {
-            <div class="error">
-                <p>@loginForm.globalError.get.message</p>
-            </div>
+        @if(flash.get("error").isDefined) {
+            <div class="error">@flash.get("error").get</div>
         }
 
-        <div>
-            <button type="submit">Register</button>
-        </div>
+        <button type="submit">Login</button>
     }
 }

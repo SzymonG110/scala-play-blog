@@ -12,7 +12,6 @@ lazy val root = (project in file("."))
 
       "com.typesafe.play" %% "play-json" % "2.10.5",
       "org.mindrot" % "jbcrypt" % "0.4",
-      "com.github.jwt-scala" %% "jwt-play" % "10.0.1",
       "io.github.cdimascio" % "java-dotenv" % "5.2.2"
     )
   )
